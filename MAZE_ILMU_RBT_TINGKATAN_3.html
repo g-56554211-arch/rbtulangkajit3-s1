@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAZE ILMU RBT TINGKATAN 3 🎮</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D Game Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#2563eb',
+                            purple: '#7c3aed',
+                            green: '#10b981',
+                            yellow: '#f59e0b',
+                            pink: '#ec4899',
+                            dark: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        fredoka: ['"Fredoka One"', 'cursive'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+        .touch-btn:active {
+            transform: scale(0.92);
+            filter: brightness(1.2);
+        }
+        @keyframes heartBreak {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4) rotate(15deg); opacity: 0.8; }
+            100% { transform: scale(0) rotate(-30deg); opacity: 0; }
+        }
+        .heart-lost {
+            animation: heartBreak 0.6s forwards;
+        }
+        .glow-text {
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.9); }
+        }
+        .map-glow {
+            animation: pulseGlow 2s infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative text-white flex flex-col justify-between">
+
+    <div id="app" class="relative w-full h-full flex flex-col">
+
+        <!-- HEADER HUD -->
+        <header id="hud-header" class="hidden absolute top-0 left-0 right-0 z-20 p-2 sm:p-4 flex flex-wrap justify-between items-center bg-gradient-to-b from-slate-950/90 to-transparent pointer-events-none gap-2">
+            <div class="pointer-events-auto flex items-center gap-2 sm:gap-3 bg-slate-900/80 backdrop-blur border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-900 font-bold text-base sm:text-lg shadow">
+                    <i class="fa-solid fa-compass"></i>
+                </div>
+                <div>
+                    <div id="hud-player-name" class="text-xs sm:text-sm font-bold text-amber-400 truncate max-w-[90px] sm:max-w-[150px]">Murid</div>
+                    <div id="hud-player-class" class="text-[10px] sm:text-xs text-slate-300">Tingkatan 3</div>
+                </div>
+            </div>
+
+            <!-- Heart Lives HUD -->
+            <div class="pointer-events-auto flex items-center gap-1.5 bg-slate-900/80 backdrop-blur border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg" id="hud-lives-container">
+                <span class="text-xs font-semibold mr-1 text-slate-300 hidden sm:inline">NYAWA:</span>
+                <div id="hearts-wrapper" class="flex items-center gap-1 text-red-500 text-base sm:text-xl">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+
+            <!-- Stats, Map View Toggle & Mute HUD -->
+            <div class="pointer-events-auto flex items-center gap-2">
+                <button id="btn-toggle-map" onclick="toggleMazeOverview()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs rounded-2xl border border-cyan-400/50 flex items-center gap-1.5 shadow-lg active:scale-95 transition-all map-glow">
+                    <i id="map-btn-icon" class="fa-solid fa-map-location-dot text-amber-300"></i>
+                    <span id="map-btn-text" class="hidden sm:inline">LIHAT PETA MAZE</span>
+                </button>
+
+                <div class="bg-slate-900/80 backdrop-blur border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg text-right">
+                    <div class="text-[10px] text-emerald-400 font-bold tracking-wider uppercase">CHECKPOINT</div>
+                    <div class="text-xs sm:text-sm font-extrabold text-white"><span id="hud-cp-count">0</span> / 15</div>
+                </div>
+                <div class="bg-slate-900/80 backdrop-blur border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg text-right hidden md:block">
+                    <div class="text-[10px] text-amber-400 font-bold tracking-wider uppercase">SKOR</div>
+                    <div class="text-xs sm:text-sm font-extrabold text-amber-300"><span id="hud-score">0</span> Mata</div>
+                </div>
+                <div class="bg-slate-900/80 backdrop-blur border border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-lg text-right">
+                    <div class="text-[10px] text-cyan-400 font-bold tracking-wider uppercase"><i class="fa-regular fa-clock"></i> MASA</div>
+                    <div class="text-xs sm:text-sm font-extrabold text-cyan-200" id="hud-timer">00:00</div>
+                </div>
+                <button id="btn-audio-toggle" onclick="toggleAudio()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-amber-400 transition-all shadow-lg active:scale-95">
+                    <i id="audio-icon" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAP OVERVIEW BANNER -->
+        <div id="map-mode-banner" class="hidden absolute top-16 left-1/2 transform -translate-x-1/2 z-20 w-11/12 max-w-xl bg-slate-900/95 border-2 border-cyan-400 p-3 sm:p-4 rounded-3xl backdrop-blur-md shadow-2xl flex flex-col items-center gap-2 text-xs">
+            <div class="flex items-center justify-between w-full border-b border-slate-700 pb-2">
+                <div class="flex items-center gap-2 font-bold text-cyan-300 text-sm">
+                    <i class="fa-solid fa-map-marked-alt text-amber-400 animate-bounce"></i>
+                    <span>MOD PETA KESELURUHAN MAZE</span>
+                </div>
+                <span class="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-amber-500/40">
+                    Baki Soalan: <span id="map-remaining-count">15</span> / 15
+                </span>
+            </div>
+
+            <p class="text-[11px] text-slate-300 text-center">
+                Lokasi checkpoint bernombor <b>1 hingga 15</b> dipaparkan secara terus di atas peta.
+            </p>
+
+            <div id="map-cp-grid" class="flex flex-wrap justify-center gap-1.5 my-1"></div>
+
+            <button onclick="toggleMazeOverview()" class="mt-1 px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-game rounded-full text-xs hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer">
+                <i class="fa-solid fa-circle-xmark mr-1"></i> TUTUP PETA & KEMBALI KEPADA PEMAIN
+            </button>
+        </div>
+
+        <!-- 3D GAME CANVAS CONTAINER -->
+        <div id="game-canvas-container" class="relative w-full h-full bg-slate-950 overflow-hidden"></div>
+
+        <!-- MOBILE TOUCH CONTROLS -->
+        <div id="mobile-controls" class="hidden absolute bottom-4 left-4 z-20 pointer-events-auto flex flex-col items-center gap-1.5">
+            <button id="btn-up" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 bg-slate-900/90 border-2 border-amber-400/80 rounded-2xl flex items-center justify-center text-amber-400 text-xl sm:text-2xl shadow-xl active:bg-amber-500 active:text-slate-950">
+                <i class="fa-solid fa-chevron-up"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <button id="btn-left" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 bg-slate-900/90 border-2 border-amber-400/80 rounded-2xl flex items-center justify-center text-amber-400 text-xl sm:text-2xl shadow-xl active:bg-amber-500 active:text-slate-950">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-[10px] sm:text-xs text-slate-400 font-bold">RBT</div>
+                <button id="btn-right" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 bg-slate-900/90 border-2 border-amber-400/80 rounded-2xl flex items-center justify-center text-amber-400 text-xl sm:text-2xl shadow-xl active:bg-amber-500 active:text-slate-950">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            <button id="btn-down" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 bg-slate-900/90 border-2 border-amber-400/80 rounded-2xl flex items-center justify-center text-amber-400 text-xl sm:text-2xl shadow-xl active:bg-amber-500 active:text-slate-950">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+        </div>
+
+        <!-- KEYBOARD INSTRUCTION HELPER -->
+        <div id="keyboard-hint" class="hidden sm:flex absolute bottom-5 right-5 z-20 bg-slate-900/80 backdrop-blur border border-slate-700/70 px-4 py-2 rounded-2xl text-xs text-slate-300 items-center gap-3 shadow-lg pointer-events-none">
+            <div class="flex items-center gap-1 font-mono font-bold text-amber-400">
+                <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded">W</span>
+                <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded">A</span>
+                <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded">S</span>
+                <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded">D</span>
+            </div>
+            <span>atau Kekunci Anak Panah untuk bergerak</span>
+            <span class="text-cyan-400 font-bold ml-2">| Tekan M untuk Peta Maze</span>
+        </div>
+
+        <!-- 1. START SCREEN OVERLAY -->
+        <div id="screen-start" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
+            <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-center flex flex-col items-center my-auto">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-gamepad"></i> Permainan Pengembaraan RBT
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl font-game text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 mb-2 glow-text">
+                    MAZE ILMU RBT TINGKATAN 3
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300 mb-6">
+                    Kembara melalui maze 3D fantasi dengan animasi awan & burung, buka 15 Checkpoint dan uji kefahaman anda!
+                </p>
+
+                <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-b from-blue-600 to-indigo-900 border-4 border-amber-400 shadow-xl flex items-center justify-center mb-6 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-amber-400/10 animate-pulse"></div>
+                    <i class="fa-solid fa-user-ninja text-5xl text-amber-300 transform group-hover:scale-110 transition-transform"></i>
+                </div>
+
+                <form id="form-start" onsubmit="startGame(event)" class="w-full text-left space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                            <i class="fa-solid fa-id-card text-amber-400 mr-1"></i> Nama Penuh Murid <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" id="input-student-name" required placeholder="Contoh: Amirah Aqilah Binti Ahmad" 
+                            class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 text-sm font-medium transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                            <i class="fa-solid fa-school text-amber-400 mr-1"></i> Tingkatan / Kelas <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" id="input-student-class" required placeholder="Contoh: 3 Cemerlang" 
+                            class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 text-sm font-medium transition-all">
+                    </div>
+
+                    <div class="p-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-slate-300 space-y-1">
+                        <div class="font-bold text-amber-300 mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Arahan & Ciri Baharu:</div>
+                        <p>1. Cari 15 Checkpoint bernombor di dalam maze 3D.</p>
+                        <p>2. Tekan butang <b>"LIHAT PETA MAZE"</b> di atas untuk melihat keseluruhan jalan laluan!</p>
+                        <p>3. Setiap murid bermula dengan <b>5 Nyawa ❤️</b>. Jawab dengan bijak!</p>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-game text-lg sm:text-xl rounded-2xl shadow-xl hover:shadow-amber-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-play"></i> MULA PENGEMBARAAN
+                    </button>
+                </form>
+
+                <div class="flex items-center justify-center gap-3 w-full border-t border-slate-800 pt-4">
+                    <button type="button" onclick="openLeaderboardModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-yellow-400"></i> Leaderboard
+                    </button>
+                    <button type="button" onclick="openTeacherLoginModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-indigo-400"></i> Dashboard Guru
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. QUIZ MODAL OVERLAY -->
+        <div id="modal-quiz" class="hidden absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+            <div class="max-w-xl w-full bg-slate-900 border-2 border-cyan-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-left flex flex-col max-h-[90vh] overflow-y-auto">
+                
+                <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span id="quiz-cp-badge" class="px-3 py-1 bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-game text-sm rounded-full">
+                            CHECKPOINT 1
+                        </span>
+                        <span id="quiz-chapter-badge" class="px-3 py-1 bg-indigo-500/20 border border-indigo-400/50 text-indigo-300 text-xs font-bold rounded-full">
+                            Bab 1: Mekatronik
+                        </span>
+                    </div>
+                    <div class="text-xs text-slate-400 font-bold">
+                        <i class="fa-solid fa-star text-yellow-400"></i> 100 Mata
+                    </div>
+                </div>
+
+                <h3 id="quiz-question-text" class="text-base sm:text-lg font-bold text-white mb-6 leading-relaxed">
+                    Memuatkan soalan...
+                </h3>
+
+                <div id="quiz-options-container" class="space-y-3 mb-6"></div>
+
+                <div id="quiz-feedback-box" class="hidden p-4 rounded-2xl mb-4 transition-all border flex items-start gap-3">
+                    <div id="feedback-icon" class="text-2xl mt-0.5"></div>
+                    <div>
+                        <div id="feedback-title" class="font-bold text-sm"></div>
+                        <div id="feedback-desc" class="text-xs mt-1 text-slate-200"></div>
+                    </div>
+                </div>
+
+                <button id="btn-submit-quiz" onclick="handleQuizButtonClick()" class="w-full py-3.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-game text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer">
+                    SAHKAN JAWAPAN
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. RESULTS MODAL OVERLAY -->
+        <div id="modal-results" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
+            <div class="max-w-lg w-full bg-slate-900 border-2 border-yellow-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl text-center relative my-auto">
+                <div id="results-badge-icon" class="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 mx-auto flex items-center justify-center text-4xl text-yellow-300 mb-4 shadow-lg">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+
+                <h2 id="results-title" class="text-2xl sm:text-3xl font-game text-amber-400 mb-1 glow-text">TAHNIAH! PENGEMBARAAN SELESAI</h2>
+                <p id="results-subtitle" class="text-xs sm:text-sm text-slate-300 mb-6">Anda telah berjaya menerokai Maze Ilmu RBT Tingkatan 3!</p>
+
+                <div class="p-4 bg-slate-800/80 border border-slate-700 rounded-2xl mb-6 text-left space-y-2 text-xs sm:text-sm">
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Nama Murid:</span>
+                        <span id="res-student-name" class="font-bold text-white"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Kelas / Tingkatan:</span>
+                        <span id="res-student-class" class="font-bold text-white"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Skor Keseluruhan:</span>
+                        <span id="res-score" class="font-extrabold text-amber-400 text-base"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Jawapan Betul:</span>
+                        <span id="res-correct-count" class="font-bold text-emerald-400"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Peratus Pencapaian:</span>
+                        <span id="res-percentage" class="font-bold text-cyan-400"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Baki Nyawa:</span>
+                        <span id="res-lives" class="font-bold text-red-400"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Masa Menjawab:</span>
+                        <span id="res-time" class="font-bold text-cyan-300"></span>
+                    </div>
+                </div>
+
+                <div id="res-motivation-box" class="p-3 bg-indigo-900/40 border border-indigo-500/40 rounded-xl text-xs text-indigo-200 mb-6 font-semibold">
+                    Syabas! Teruskan usaha murni anda dalam mempelajari Reka Bentuk dan Teknologi.
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="restartGame()" class="py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-game text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> MAIN SEMULA
+                    </button>
+                    <button onclick="openLeaderboardModal()" class="py-3 bg-slate-800 hover:bg-slate-700 text-white font-game text-sm rounded-xl border border-slate-700 shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trophy text-yellow-400"></i> LEADERBOARD
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. LEADERBOARD MODAL OVERLAY -->
+        <div id="modal-leaderboard" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+            <div class="max-w-xl w-full bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-left flex flex-col max-h-[85vh]">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-2xl text-yellow-400"></i>
+                        <h2 class="text-xl sm:text-2xl font-game text-amber-300">Papan Kedudukan (Leaderboard)</h2>
+                    </div>
+                    <button onclick="closeLeaderboardModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div id="sync-mode-tag" class="text-[11px] px-3 py-1 rounded-lg bg-slate-800 text-slate-300 mb-3 border border-slate-700 flex items-center justify-between">
+                    <span><i class="fa-solid fa-database text-emerald-400 mr-1"></i> Mode: <strong id="storage-mode-text">Local Storage</strong></span>
+                </div>
+
+                <div class="overflow-y-auto flex-1 pr-1 space-y-2.5" id="leaderboard-list-container"></div>
+
+                <button onclick="closeLeaderboardModal()" class="mt-4 w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-game text-sm rounded-xl border border-slate-700">
+                    TUTUP
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. TEACHER LOGIN MODAL -->
+        <div id="modal-teacher-login" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+            <div class="max-w-md w-full bg-slate-900 border-2 border-indigo-500/60 rounded-3xl p-6 shadow-2xl text-left relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-game text-indigo-300 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-amber-400"></i> Log Masuk Dashboard Guru
+                    </h3>
+                    <button onclick="closeTeacherLoginModal()" class="text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-300 mb-4">Sila masukkan kata laluan keselamatan untuk mengakses data penuh murid.</p>
+                <form onsubmit="verifyTeacherPassword(event)" class="space-y-4">
+                    <div>
+                        <input type="password" id="input-teacher-pin" required placeholder="Kata Laluan (Default: guru123)" 
+                            class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-sm font-medium">
+                    </div>
+                    <div id="teacher-pin-error" class="hidden text-xs text-red-400 font-semibold">
+                        Kata laluan tidak tepat. Sila cuba lagi. (Gunakan: <strong>guru123</strong>)
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-game text-sm rounded-xl shadow-lg transition-all cursor-pointer">
+                        LOG MASUK
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 6. DASHBOARD GURU FULLSCREEN MODAL -->
+        <div id="modal-teacher-dashboard" class="hidden absolute inset-0 z-50 flex flex-col bg-slate-950 text-white overflow-hidden">
+            <div class="p-4 bg-slate-900 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold shadow-lg">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-game text-indigo-300">DASHBOARD GURU RBT</h2>
+                        <div class="text-xs text-slate-400">Pengurusan Keputusan Murid Tingkatan 3</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="exportResultsCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow transition-all cursor-pointer">
+                        <i class="fa-solid fa-file-csv"></i> MUAT TURUN CSV
+                    </button>
+                    <button onclick="refreshTeacherData()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate"></i> REFRESH
+                    </button>
+                    <button onclick="closeTeacherDashboard()" class="px-3.5 py-2 bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer">
+                        <i class="fa-solid fa-right-from-bracket"></i> KELUAR
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow">
+                        <div class="text-xs text-slate-400 font-bold uppercase">Jumlah Murid</div>
+                        <div class="text-2xl font-game text-amber-400 mt-1" id="dash-stat-total">0</div>
+                    </div>
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow">
+                        <div class="text-xs text-slate-400 font-bold uppercase">Purata Skor</div>
+                        <div class="text-2xl font-game text-emerald-400 mt-1" id="dash-stat-avg-score">0</div>
+                    </div>
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow">
+                        <div class="text-xs text-slate-400 font-bold uppercase">Kadar Lulus (&ge;50%)</div>
+                        <div class="text-2xl font-game text-cyan-400 mt-1" id="dash-stat-pass-rate">0%</div>
+                    </div>
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow">
+                        <div class="text-xs text-slate-400 font-bold uppercase">Masa Terpantas</div>
+                        <div class="text-2xl font-game text-purple-400 mt-1" id="dash-stat-fastest">00:00</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-900 p-4 border border-slate-800 rounded-2xl">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-sm"></i>
+                        <input type="text" id="dash-search-input" oninput="filterTeacherTable()" placeholder="Cari nama murid..." 
+                            class="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400">
+                    </div>
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <select id="dash-class-filter" onchange="filterTeacherTable()" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-400">
+                            <option value="ALL">Semua Kelas</option>
+                        </select>
+                        <span class="text-xs text-slate-400 font-semibold text-nowrap"><span id="dash-table-count">0</span> Rekod Dijumpai</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-800/80 text-slate-300 font-bold uppercase tracking-wider border-b border-slate-700">
+                                <tr>
+                                    <th class="p-3.5">Kedudukan</th>
+                                    <th class="p-3.5">Nama Murid</th>
+                                    <th class="p-3.5">Kelas</th>
+                                    <th class="p-3.5">Skor</th>
+                                    <th class="p-3.5">Betul (/15)</th>
+                                    <th class="p-3.5">Masa</th>
+                                    <th class="p-3.5">Tarikh / Masa</th>
+                                    <th class="p-3.5">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-table-body" class="divide-y divide-slate-800 text-slate-200 font-medium"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. SILIBUS KSSM RBT TINGKATAN 3 - DATASET 15 SOALAN KUIZ LENGKAP
+           ========================================================================== */
+        const QUIZ_QUESTIONS = [
+            // BAB 1: APLIKASI TEKNOLOGI (REKA BENTUK MEKATRONIK) - 5 SOALAN
+            {
+                id: 1,
+                chapter: "Bab 1: Aplikasi Teknologi",
+                topic: "Reka Bentuk Mekatronik",
+                question: "Apakah definisi yang paling tepat bagi reka bentuk mekatronik?",
+                options: [
+                    "A. Gabungan sistem mekanikal, elektrik, elektronik dan kawalan pengaturcaraan.",
+                    "B. Hiasan dalaman menggunakan perkakas elektrik dan perabot kayu.",
+                    "C. Penghasilan mesin pertanian berasaskan tenaga suria secara manual.",
+                    "D. Sistem pemprosesan makanan automatik tanpa sebarang komponen mekanikal."
+                ],
+                answer: 0,
+                explanation: "Mekatronik ialah gabungan 4 elemen teras: Sistem Mekanikal, Elektrik, Elektronik dan Kawalan & Pengaturcaraan."
+            },
+            {
+                id: 2,
+                chapter: "Bab 1: Aplikasi Teknologi",
+                topic: "Elemen Mekatronik",
+                question: "Antara berikut, yang manakah BUKAN merupakan teras utama dalam sistem mekatronik?",
+                options: [
+                    "A. Sistem Mekanikal",
+                    "B. Sistem Elektronik",
+                    "C. Sistem Pneumatik Lanjutan",
+                    "D. Sistem Kawalan dan Pengaturcaraan"
+                ],
+                answer: 2,
+                explanation: "Empat elemen asas mekatronik ialah Mekanikal, Elektrik, Elektronik, dan Kawalan & Pengaturcaraan."
+            },
+            {
+                id: 3,
+                chapter: "Bab 1: Aplikasi Teknologi",
+                topic: "Produk Mekatronik",
+                question: "Pintu gelangsar automatik di kompleks beli-belah menggunakan penderia inframerah untuk tujuan apa?",
+                options: [
+                    "A. Menyerap haba panas di luar bangunan",
+                    "B. Mengesan pergerakan objek / manusia untuk membuka dan menutup pintu",
+                    "C. Mengukur jumlah berat beban pintu",
+                    "D. Mengawal aliran arus elektrik utama"
+                ],
+                answer: 1,
+                explanation: "Penderia inframerah mengesan kehadiran pergerakan manusia di hadapan pintu untuk menghantar isyarat input kepada mikropengawal."
+            },
+            {
+                id: 4,
+                chapter: "Bab 1: Aplikasi Teknologi",
+                topic: "Fungsi Mikropengawal",
+                question: "Apakah peran utama mikropengawal (microcontroller) dalam sesebuah produk mekatronik?",
+                options: [
+                    "A. Menerima isyarat input dan mengawal peranti output mengikut atur cara yang ditetapkan",
+                    "B. Mengurangkan geseran antara komponen mekanikal yang berputar",
+                    "C. Membekalkan tenaga elektrik AC voltan tinggi",
+                    "D. Menukarkan tenaga haba kepada tenaga cahaya"
+                ],
+                answer: 0,
+                explanation: "Mikropengawal bertindak sebagai 'otak' yang memproses isyarat input dan mengarahkan output berfungsi mengikut atur cara."
+            },
+            {
+                id: 5,
+                chapter: "Bab 1: Aplikasi Teknologi",
+                topic: "Komponen Mekanikal",
+                question: "Antara komponen berikut, manakah contoh elemen mekanikal yang digunakan untuk memindahkan kuasa gerakan putaran?",
+                options: [
+                    "A. Diod emissi cahaya (LED)",
+                    "B. Takal dan tali sawat (Pulleys and Belt)",
+                    "C. Perintang tetap dan kapasitor",
+                    "D. Suis tekan tutup"
+                ],
+                answer: 1,
+                explanation: "Takal dan tali sawat merupakan komponen mekanikal yang berfungsi memindahkan kuasa putaran dari motor ke bahagian bergerak."
+            },
+
+            // BAB 2: PEMBANGUNAN PRODUK - 5 SOALAN
+            {
+                id: 6,
+                chapter: "Bab 2: Pembangunan Produk",
+                topic: "Langkah Pembangunan Produk",
+                question: "Apakah fasa pertama dalam proses pembangunan produk baharu RBT Tingkatan 3?",
+                options: [
+                    "A. Menghasilkan mock-up produk bersaiz sebenar",
+                    "B. Menyediakan iklan di media cetak",
+                    "C. Mengenal pasti masalah dan melakukan kajian keperluan pelanggan",
+                    "D. Menentukan harga jualan di pasaran"
+                ],
+                answer: 2,
+                explanation: "Pembangunan produk bermula dengan mengenal pasti masalah melalui borang kajian keperluan pelanggan."
+            },
+            {
+                id: 7,
+                chapter: "Bab 2: Pembangunan Produk",
+                topic: "Penghasilan Mock-up",
+                question: "Apakah tujuan utama membuat 'mock-up' sebelum menghasilkan prototaip produk sebenar?",
+                options: [
+                    "A. Untuk dijual secara terus kepada pembeli runcit",
+                    "B. Untuk menilai rupa bentuk fizikal, proporsi dan saiz produk secara visual",
+                    "C. Untuk menguji kekuatan bahan besi sebenar",
+                    "D. Untuk menggantikan fungsi lukisan kerja 2D"
+                ],
+                answer: 1,
+                explanation: "Mock-up ialah model olahan awal berbentuk 3D yang dibuat untuk melihat saiz, bentuk dan nilai estetik produk."
+            },
+            {
+                id: 8,
+                chapter: "Bab 2: Pembangunan Produk",
+                topic: "Bahan Mock-up",
+                question: "Bahan manakah yang paling mudah dan sesuai digunakan untuk pembinaan mock-up awal?",
+                options: [
+                    "A. Besi keluli dan aluminium tebal",
+                    "B. Kadbod, gabus, foam dan kadbod gelombang",
+                    "C. Kaca gentian tebal",
+                    "D. Konkrit dan simen"
+                ],
+                answer: 1,
+                explanation: "Kadbod, foam, dan gabus mudah dipotong dan dibentuk untuk menghasilkan mock-up visual dengan pantas."
+            },
+            {
+                id: 9,
+                chapter: "Bab 2: Pembangunan Produk",
+                topic: "Perancangan Jadual Kerja",
+                question: "Apakah kegunaan Carta Gantt dalam fasa perancangan pembangunan produk?",
+                options: [
+                    "A. Menunjukkan anggaran perbelanjaan kewangan peribadi",
+                    "B. Menyusun jadual masa dan urutan aktiviti projek secara teratur",
+                    "C. Merekodkan nombor kad pengenalan pekerja kilang",
+                    "D. Mengira bilangan unit keluaran produk sehari"
+                ],
+                answer: 1,
+                explanation: "Carta Gantt digunakan sebagai jadual kerja untuk mengurus susunan dan garis masa sesuatu projek RBT."
+            },
+            {
+                id: 10,
+                chapter: "Bab 2: Pembangunan Produk",
+                topic: "Pengujian Prototaip",
+                question: "Mengapakah pengujian dan penilaian prototaip perlu dilaksanakan selepas prototaip siap dibina?",
+                options: [
+                    "A. Untuk memastikan produk memenuhi fungsi, keselamatan dan dapat menyelesaikan masalah pelanggan",
+                    "B. Sekadar syarat kementerian tanpa tujuan khusus",
+                    "C. Untuk meningkatkan kos jualan produk",
+                    "D. Untuk mengurangkan saiz pembungkusan"
+                ],
+                answer: 0,
+                explanation: "Pengujian dan penilaian kritikal bagi menguji kefungsian dan daya tahan prototaip sebelum dikeluarkan."
+            },
+
+            // BAB 3: REKA BENTUK DALAM PERNIAGAAN - 5 SOALAN
+            {
+                id: 11,
+                chapter: "Bab 3: Reka Bentuk Perniagaan",
+                topic: "Pembungkusan dan Pemasaran",
+                question: "Apakah peranan penting reka bentuk pembungkusan dalam pemasaran sesuatu produk?",
+                options: [
+                    "A. Menjadikan berat produk bertambah ganda",
+                    "B. Memelihara kualiti produk, melindungi kandungan dan menarik minat pembeli",
+                    "C. Menyorokkan kecacatan barang daripada pengguna",
+                    "D. Menghalang pengguna daripada membuka balutan"
+                ],
+                answer: 1,
+                explanation: "Pembungkusan yang menarik memelihara kualiti barangan sekali gus menjadi alat promosi fizikal yang berkesan."
+            },
+            {
+                id: 12,
+                chapter: "Bab 3: Reka Bentuk Perniagaan",
+                topic: "Penjenamaan (Branding)",
+                question: "Antara elemen berikut, yang manakah BUKAN merupakan penentu jenama produk yang kukuh?",
+                options: [
+                    "A. Logo dan simbol khas produk",
+                    "B. Slogan atau tagline yang menarik",
+                    "C. Resit pembelian kedai lama",
+                    "D. Skim warna identiti jenama"
+                ],
+                answer: 2,
+                explanation: "Penentu jenama melibatkan nama, logo, slogan, warna, dan cap dagangan (trademark)."
+            },
+            {
+                id: 13,
+                chapter: "Bab 3: Reka Bentuk Perniagaan",
+                topic: "Media Pengiklanan",
+                question: "Pengiklanan menerusi televisyen, radio, laman web dan aplikasi media sosial dikategorikan di bawah jenis media apa?",
+                options: [
+                    "A. Media Cetak",
+                    "B. Media Elektronik dan Digital",
+                    "C. Media Surat Khabar Muka Hadapan",
+                    "D. Media Paparan Luar Rumah"
+                ],
+                answer: 1,
+                explanation: "Televisyen, radio, dan platform atas talian tergolong di bawah saluran Media Elektronik & Digital."
+            },
+            {
+                id: 14,
+                chapter: "Bab 3: Reka Bentuk Perniagaan",
+                topic: "Maklumat Label",
+                question: "Mengapakah pencatatan maklumat ramuan, cara pengurusan, dan tarikh luput pada label pembungkusan sangat diwajibkan?",
+                options: [
+                    "A. Memenuhi ruang kosong pada permukaan kotak",
+                    "B. Menyampaikan maklumat keselamatan dan hak kepada pengguna",
+                    "C. Supaya penjual boleh menaikkan harga tinggi",
+                    "D. Untuk mengelakkan pembungkusan dikitar semula"
+                ],
+                answer: 1,
+                explanation: "Label menyampaikan maklumat penting berkaitan kandungan, keselamatan, tarikh luput, dan arahan penggunaan."
+            },
+            {
+                id: 15,
+                chapter: "Bab 3: Reka Bentuk Perniagaan",
+                topic: "Penilaian Pengiklanan",
+                question: "Apakah faktor utama yang menentukan keberkesanan sesebuah reka bentuk pengiklanan?",
+                options: [
+                    "A. Kejelasan mesej, keunikan kreativiti dan daya penarik sasaran pengguna",
+                    "B. Bilangan lori penghantaran barang kilang",
+                    "C. Kelajuan kelajuan jurujual bercakap",
+                    "D. Saiz cawangan bangunan pejabat"
+                ],
+                answer: 0,
+                explanation: "Iklan yang berkesan mestilah mempunyai mesej yang jelas, kreatif, dan mampu menyampaikan maklumat kepada sasaran pengguna."
+            }
+        ];
+
+        /* ==========================================================================
+           2. GLOBAL GAME STATE VARIABLES
+           ========================================================================== */
+        let gameState = {
+            playerName: '',
+            playerClass: '',
+            score: 0,
+            lives: 5,
+            completedCheckpoints: [],
+            currentCheckpointIndex: null,
+            startTime: null,
+            endTime: null,
+            timerInterval: null,
+            elapsedSeconds: 0,
+            isAudioMuted: false,
+            isPlaying: false,
+            isOverviewMode: false
+        };
+
+        let quizPhase = 'QUESTION';
+        let currentSelectedOption = null;
+
+        let localLeaderboard = JSON.parse(localStorage.getItem('rbt_maze_leaderboard') || '[]');
+
+        /* ==========================================================================
+           3. AUDIO SYNTHESIZER & BGM SOUNDTRACK
+           ========================================================================== */
+        let audioCtx = null;
+        let bgmTimer = null;
+        let bgmStep = 0;
+
+        const BGM_MELODY = [
+            { f: 659.25, d: 1 }, { f: 659.25, d: 1 }, { f: 0, d: 1 }, { f: 659.25, d: 1 },
+            { f: 0, d: 1 }, { f: 523.25, d: 1 }, { f: 659.25, d: 2 },
+            { f: 783.99, d: 2 }, { f: 0, d: 2 }, { f: 392.00, d: 2 }, { f: 0, d: 2 },
+            { f: 523.25, d: 2 }, { f: 0, d: 1 }, { f: 392.00, d: 2 }, { f: 0, d: 1 }, { f: 329.63, d: 2 },
+            { f: 0, d: 1 }, { f: 440.00, d: 2 }, { f: 493.88, d: 2 }, { f: 466.16, d: 1 }, { f: 440.00, d: 2 },
+            { f: 392.00, d: 1.5 }, { f: 659.25, d: 1.5 }, { f: 783.99, d: 1.5 }, { f: 880.00, d: 2 },
+            { f: 698.46, d: 1 }, { f: 783.99, d: 1 }, { f: 0, d: 1 }, { f: 659.25, d: 2 },
+            { f: 523.25, d: 1 }, { f: 587.33, d: 1 }, { f: 493.88, d: 2 },
+            { f: 523.25, d: 2 }, { f: 659.25, d: 2 }, { f: 783.99, d: 2 }, { f: 1046.50, d: 2 },
+            { f: 0, d: 2 }
+        ];
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function startBGM() {
+            stopBGM();
+            if (gameState.isAudioMuted || !gameState.isPlaying) return;
+            bgmStep = 0;
+            playNextBGMNote();
+        }
+
+        function stopBGM() {
+            if (bgmTimer) {
+                clearTimeout(bgmTimer);
+                bgmTimer = null;
+            }
+        }
+
+        function playNextBGMNote() {
+            if (!gameState.isPlaying || gameState.isAudioMuted) return;
+
+            const note = BGM_MELODY[bgmStep % BGM_MELODY.length];
+            const stepDuration = 120;
+
+            if (note.f > 0) {
+                playBeep(note.f, (note.d * stepDuration) / 1000 * 0.85, 'square', 0.04);
+            }
+
+            bgmStep++;
+            bgmTimer = setTimeout(playNextBGMNote, note.d * stepDuration);
+        }
+
+        function toggleAudio() {
+            gameState.isAudioMuted = !gameState.isAudioMuted;
+            const btnIcon = document.getElementById('audio-icon');
+            if (gameState.isAudioMuted) {
+                btnIcon.className = "fa-solid fa-volume-xmark text-red-400";
+                stopBGM();
+            } else {
+                btnIcon.className = "fa-solid fa-volume-high text-amber-400";
+                playBeep(600, 0.08);
+                if (gameState.isPlaying) {
+                    startBGM();
+                }
+            }
+        }
+
+        function playBeep(freq = 440, duration = 0.1, type = 'sine', volume = 0.15) {
+            if (gameState.isAudioMuted) return;
+            try {
+                initAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.warn('Audio error', e);
+            }
+        }
+
+        function playMoveSound() { playBeep(240, 0.05, 'triangle', 0.05); }
+        function playCheckpointSound() {
+            if (gameState.isAudioMuted) return;
+            playBeep(523.25, 0.1, 'sine', 0.2);
+            setTimeout(() => playBeep(659.25, 0.12, 'sine', 0.2), 100);
+            setTimeout(() => playBeep(783.99, 0.2, 'sine', 0.25), 200);
+        }
+        function playCorrectSound() {
+            if (gameState.isAudioMuted) return;
+            [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                setTimeout(() => playBeep(f, 0.15, 'triangle', 0.25), i * 90);
+            });
+        }
+        function playWrongSound() {
+            if (gameState.isAudioMuted) return;
+            playBeep(180, 0.25, 'sawtooth', 0.3);
+            setTimeout(() => playBeep(140, 0.3, 'sawtooth', 0.3), 150);
+        }
+        function playVictorySound() {
+            stopBGM();
+            if (gameState.isAudioMuted) return;
+            [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((f, idx) => {
+                setTimeout(() => playBeep(f, 0.2, 'sine', 0.3), idx * 100);
+            });
+        }
+        function playGameOverSound() {
+            stopBGM();
+            if (gameState.isAudioMuted) return;
+            [400, 350, 300, 220].forEach((f, idx) => {
+                setTimeout(() => playBeep(f, 0.25, 'sawtooth', 0.25), idx * 180);
+            });
+        }
+
+        /* ==========================================================================
+           4. THREE.JS 3D MAZE ENGINE & AMBIENT ANIMATIONS
+           ========================================================================== */
+        let scene, camera, renderer;
+        let playerMesh;
+        let checkpointMeshes = [];
+        let animatedClouds = [];
+        let animatedBirds = [];
+
+        const GRID_SIZE = 11;
+        const CELL_SIZE = 4;
+
+        const MAZE_MAP = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+
+        const CHECKPOINT_COORDS = [
+            { r: 1, c: 1 },  { r: 1, c: 3 },  { r: 1, c: 5 },  { r: 1, c: 9 },  { r: 3, c: 1 },
+            { r: 3, c: 3 },  { r: 3, c: 7 },  { r: 5, c: 3 },  { r: 5, c: 7 },  { r: 7, c: 1 },
+            { r: 7, c: 3 },  { r: 7, c: 5 },  { r: 7, c: 9 },  { r: 9, c: 1 },  { r: 9, c: 9 }
+        ];
+
+        let playerPos = { r: 1, c: 1, x: 0, z: 0 };
+        let targetPos = { x: 0, z: 0 };
+
+        function init3DWorld() {
+            const container = document.getElementById('game-canvas-container');
+            container.innerHTML = '';
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.02);
+
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 1.0);
+            sunLight.position.set(20, 50, 20);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+
+            const groundGeo = new THREE.PlaneGeometry(GRID_SIZE * CELL_SIZE + 20, GRID_SIZE * CELL_SIZE + 20);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.set((GRID_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2, 0, (GRID_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2);
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            const wallGeo = new THREE.BoxGeometry(CELL_SIZE, 3, CELL_SIZE);
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
+            const topMossMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 });
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const posX = c * CELL_SIZE;
+                    const posZ = r * CELL_SIZE;
+                    if (MAZE_MAP[r][c] === 1) {
+                        const materials = [wallMat, wallMat, topMossMat, wallMat, wallMat, wallMat];
+                        const wall = new THREE.Mesh(wallGeo, materials);
+                        wall.position.set(posX, 1.5, posZ);
+                        wall.castShadow = true;
+                        wall.receiveShadow = true;
+                        scene.add(wall);
+                    }
+                }
+            }
+
+            animatedClouds = [];
+            const cloudMat = new THREE.MeshStandardMaterial({ 
+                color: 0xe2e8f0, 
+                transparent: true, 
+                opacity: 0.85, 
+                roughness: 0.9 
+            });
+
+            for (let i = 0; i < 14; i++) {
+                const cloudGroup = new THREE.Group();
+                const puffCount = 3 + Math.floor(Math.random() * 3);
+                for (let p = 0; p < puffCount; p++) {
+                    const radius = 1.8 + Math.random() * 1.5;
+                    const puffGeo = new THREE.SphereGeometry(radius, 8, 8);
+                    const puff = new THREE.Mesh(puffGeo, cloudMat);
+                    puff.position.set(p * 1.5, Math.random() * 0.8, Math.random() * 1.2);
+                    cloudGroup.add(puff);
+                }
+
+                const cloudX = (Math.random() - 0.5) * 80 + 20;
+                const cloudY = 14 + Math.random() * 8;
+                const cloudZ = (Math.random() - 0.5) * 80 + 20;
+                const speed = 0.03 + Math.random() * 0.04;
+
+                cloudGroup.position.set(cloudX, cloudY, cloudZ);
+                scene.add(cloudGroup);
+                animatedClouds.push({ group: cloudGroup, speed: speed });
+            }
+
+            animatedBirds = [];
+            for (let b = 0; b < 6; b++) {
+                const birdGroup = new THREE.Group();
+
+                const wingGeo = new THREE.ConeGeometry(0.6, 1.5, 3);
+                wingGeo.rotateX(Math.PI / 2);
+                const wingMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+
+                const leftWing = new THREE.Mesh(wingGeo, wingMat);
+                leftWing.position.x = -0.5;
+                leftWing.rotation.z = 0.5;
+
+                const rightWing = new THREE.Mesh(wingGeo, wingMat);
+                rightWing.position.x = 0.5;
+                rightWing.rotation.z = -0.5;
+
+                birdGroup.add(leftWing);
+                birdGroup.add(rightWing);
+
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 15 + Math.random() * 15;
+                const height = 12 + Math.random() * 6;
+                const speed = 0.015 + Math.random() * 0.01;
+
+                birdGroup.position.set(
+                    20 + Math.cos(angle) * radius,
+                    height,
+                    20 + Math.sin(angle) * radius
+                );
+
+                scene.add(birdGroup);
+                animatedBirds.push({
+                    group: birdGroup,
+                    leftWing: leftWing,
+                    rightWing: rightWing,
+                    angle: angle,
+                    radius: radius,
+                    height: height,
+                    speed: speed
+                });
+            }
+
+            checkpointMeshes = [];
+            CHECKPOINT_COORDS.forEach((cp, idx) => {
+                const posX = cp.c * CELL_SIZE;
+                const posZ = cp.r * CELL_SIZE;
+
+                const cpGroup = new THREE.Group();
+                cpGroup.position.set(posX, 0, posZ);
+
+                const pedGeo = new THREE.CylinderGeometry(1, 1.2, 0.6, 8);
+                const pedMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 });
+                const ped = new THREE.Mesh(pedGeo, pedMat);
+                ped.position.y = 0.3;
+                ped.castShadow = true;
+                cpGroup.add(ped);
+
+                const cryGeo = new THREE.OctahedronGeometry(0.7, 0);
+                const cryMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x06b6d4, 
+                    emissive: 0x0891b2,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.2
+                });
+                const crystal = new THREE.Mesh(cryGeo, cryMat);
+                crystal.position.y = 1.8;
+                crystal.castShadow = true;
+                cpGroup.add(crystal);
+
+                const pointLight = new THREE.PointLight(0x06b6d4, 1.5, 6);
+                pointLight.position.y = 2;
+                cpGroup.add(pointLight);
+
+                const ringGeo = new THREE.TorusGeometry(1.2, 0.08, 8, 24);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                ring.position.y = 0.5;
+                cpGroup.add(ring);
+
+                const numberSprite = createNumberSprite(idx + 1);
+                numberSprite.position.y = 3.6;
+                cpGroup.add(numberSprite);
+
+                scene.add(cpGroup);
+
+                checkpointMeshes.push({
+                    index: idx,
+                    number: idx + 1,
+                    group: cpGroup,
+                    crystal: crystal,
+                    ring: ring,
+                    sprite: numberSprite,
+                    light: pointLight,
+                    r: cp.r,
+                    c: cp.c,
+                    completed: false
+                });
+            });
+
+            createCharacterModel();
+
+            playerPos.r = 1;
+            playerPos.c = 1;
+            playerPos.x = playerPos.c * CELL_SIZE;
+            playerPos.z = playerPos.r * CELL_SIZE;
+            
+            targetPos.x = playerPos.x;
+            targetPos.z = playerPos.z;
+
+            playerMesh.position.set(playerPos.x, 0, playerPos.z);
+
+            window.addEventListener('resize', onWindowResize);
+            animate3DScene();
+        }
+
+        function createNumberSprite(number) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.beginPath();
+            ctx.arc(64, 64, 54, 0, Math.PI * 2);
+            ctx.fillStyle = '#0284c7';
+            ctx.fill();
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 56px "Fredoka One", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(number.toString(), 64, 66);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(2.8, 2.8, 1);
+            return sprite;
+        }
+
+        function createCharacterModel() {
+            playerMesh = new THREE.Group();
+
+            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.6, 1.2, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.8;
+            body.castShadow = true;
+            playerMesh.add(body);
+
+            const headGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.3 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.6;
+            head.castShadow = true;
+            playerMesh.add(head);
+
+            const hatGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 12);
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
+            const hat = new THREE.Mesh(hatGeo, hatMat);
+            hat.position.y = 1.9;
+            playerMesh.add(hat);
+
+            const beaconGeo = new THREE.SphereGeometry(0.2, 8, 8);
+            const beaconMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            beacon.position.y = 2.2;
+            playerMesh.add(beacon);
+
+            scene.add(playerMesh);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('game-canvas-container');
+            if (!container || !renderer || !camera) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate3DScene() {
+            requestAnimationFrame(animate3DScene);
+
+            playerMesh.position.x += (targetPos.x - playerMesh.position.x) * 0.2;
+            playerMesh.position.z += (targetPos.z - playerMesh.position.z) * 0.2;
+
+            checkpointMeshes.forEach(cp => {
+                if (cp.crystal) {
+                    cp.crystal.rotation.y += 0.02;
+                    cp.crystal.position.y = 1.8 + Math.sin(Date.now() * 0.004 + cp.index) * 0.15;
+                }
+                if (cp.ring) {
+                    cp.ring.rotation.z += 0.01;
+                }
+            });
+
+            animatedClouds.forEach(c => {
+                c.group.position.x += c.speed;
+                if (c.group.position.x > 65) {
+                    c.group.position.x = -25;
+                }
+            });
+
+            animatedBirds.forEach(b => {
+                b.angle += b.speed;
+                b.group.position.x = 20 + Math.cos(b.angle) * b.radius;
+                b.group.position.z = 20 + Math.sin(b.angle) * b.radius;
+                b.group.rotation.y = -b.angle;
+
+                const flap = Math.sin(Date.now() * 0.015) * 0.4;
+                b.leftWing.rotation.z = 0.5 + flap;
+                b.rightWing.rotation.z = -0.5 - flap;
+            });
+
+            if (gameState.isOverviewMode) {
+                const overviewX = (GRID_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2;
+                const overviewY = 42;
+                const overviewZ = (GRID_SIZE * CELL_SIZE) / 2 + 6;
+
+                camera.position.x += (overviewX - camera.position.x) * 0.08;
+                camera.position.y += (overviewY - camera.position.y) * 0.08;
+                camera.position.z += (overviewZ - camera.position.z) * 0.08;
+
+                camera.lookAt(overviewX, 0, overviewZ - 6);
+            } else {
+                camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
+                camera.position.y += (11 - camera.position.y) * 0.1;
+                camera.position.z += (playerMesh.position.z + 9 - camera.position.z) * 0.1;
+
+                camera.lookAt(playerMesh.position.x, 1, playerMesh.position.z);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        /* ==========================================================================
+           5. OVERVIEW MAZE TOGGLE & MOVEMENT CONTROLS
+           ========================================================================== */
+        function toggleMazeOverview() {
+            gameState.isOverviewMode = !gameState.isOverviewMode;
+            const btnText = document.getElementById('map-btn-text');
+            const btnIcon = document.getElementById('map-btn-icon');
+            const banner = document.getElementById('map-mode-banner');
+
+            if (gameState.isOverviewMode) {
+                if (btnText) btnText.innerText = "KEMBALI KE PEMAIN";
+                if (btnIcon) btnIcon.className = "fa-solid fa-user text-yellow-300";
+                banner.classList.remove('hidden');
+                renderMapGridTracker();
+                playBeep(700, 0.1, 'sine');
+            } else {
+                if (btnText) btnText.innerText = "LIHAT PETA MAZE";
+                if (btnIcon) btnIcon.className = "fa-solid fa-map-location-dot text-amber-300";
+                banner.classList.add('hidden');
+                playBeep(500, 0.1, 'sine');
+            }
+        }
+
+        function renderMapGridTracker() {
+            const gridContainer = document.getElementById('map-cp-grid');
+            const remainingCount = document.getElementById('map-remaining-count');
+            if (!gridContainer) return;
+
+            gridContainer.innerHTML = '';
+            let remaining = 15 - gameState.completedCheckpoints.length;
+            if (remainingCount) remainingCount.innerText = remaining;
+
+            for (let i = 0; i < 15; i++) {
+                const isDone = gameState.completedCheckpoints.includes(i);
+                const pill = document.createElement('div');
+                if (isDone) {
+                    pill.className = "px-2.5 py-1 bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-bold rounded-lg text-[11px] flex items-center gap-1";
+                    pill.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> CP ${i + 1}`;
+                } else {
+                    pill.className = "px-2.5 py-1 bg-amber-500/20 border border-amber-400/80 text-amber-300 font-bold rounded-lg text-[11px] flex items-center gap-1 animate-pulse";
+                    pill.innerHTML = `<i class="fa-solid fa-location-dot text-amber-400"></i> CP ${i + 1}`;
+                }
+                gridContainer.appendChild(pill);
+            }
+        }
+
+        function movePlayer(dirR, dirC) {
+            if (!gameState.isPlaying) return;
+
+            if (gameState.isOverviewMode) {
+                toggleMazeOverview();
+            }
+
+            const newR = playerPos.r + dirR;
+            const newC = playerPos.c + dirC;
+
+            if (newR < 0 || newR >= GRID_SIZE || newC < 0 || newC >= GRID_SIZE) return;
+            if (MAZE_MAP[newR][newC] === 1) {
+                playBeep(120, 0.08, 'square', 0.1);
+                return;
+            }
+
+            playerPos.r = newR;
+            playerPos.c = newC;
+            targetPos.x = playerPos.c * CELL_SIZE;
+            targetPos.z = playerPos.r * CELL_SIZE;
+
+            if (dirC === 1) playerMesh.rotation.y = Math.PI / 2;
+            else if (dirC === -1) playerMesh.rotation.y = -Math.PI / 2;
+            else if (dirR === 1) playerMesh.rotation.y = 0;
+            else if (dirR === -1) playerMesh.rotation.y = Math.PI;
+
+            playMoveSound();
+            checkCheckpointTrigger();
+        }
+
+        function checkCheckpointTrigger() {
+            checkpointMeshes.forEach((cp) => {
+                if (!cp.completed && cp.r === playerPos.r && cp.c === playerPos.c) {
+                    openQuizModal(cp.index);
+                }
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameState.isPlaying) return;
+            const key = e.key.toLowerCase();
+            if (key === 'w' || key === 'arrowup') movePlayer(-1, 0);
+            else if (key === 's' || key === 'arrowdown') movePlayer(1, 0);
+            else if (key === 'a' || key === 'arrowleft') movePlayer(0, -1);
+            else if (key === 'd' || key === 'arrowright') movePlayer(0, 1);
+            else if (key === 'm') toggleMazeOverview();
+        });
+
+        document.getElementById('btn-up').addEventListener('click', () => movePlayer(-1, 0));
+        document.getElementById('btn-down').addEventListener('click', () => movePlayer(1, 0));
+        document.getElementById('btn-left').addEventListener('click', () => movePlayer(0, -1));
+        document.getElementById('btn-right').addEventListener('click', () => movePlayer(0, 1));
+
+        /* ==========================================================================
+           6. GAME ENGINE & QUIZ ENGINE
+           ========================================================================== */
+        function startGame(e) {
+            e.preventDefault();
+            initAudioContext();
+
+            const nameInput = document.getElementById('input-student-name').value.trim();
+            const classInput = document.getElementById('input-student-class').value.trim();
+
+            if (!nameInput || !classInput) return;
+
+            gameState.playerName = nameInput;
+            gameState.playerClass = classInput;
+            gameState.score = 0;
+            gameState.lives = 5;
+            gameState.completedCheckpoints = [];
+            gameState.elapsedSeconds = 0;
+            gameState.isPlaying = true;
+            gameState.isOverviewMode = false;
+            gameState.startTime = new Date();
+
+            document.getElementById('hud-player-name').innerText = gameState.playerName;
+            document.getElementById('hud-player-class').innerText = gameState.playerClass;
+            document.getElementById('hud-cp-count').innerText = "0";
+            document.getElementById('hud-score').innerText = "0";
+            renderHeartsHUD();
+
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('hud-header').classList.remove('hidden');
+            document.getElementById('mobile-controls').classList.remove('hidden');
+
+            init3DWorld();
+
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(() => {
+                gameState.elapsedSeconds++;
+                document.getElementById('hud-timer').innerText = formatTimer(gameState.elapsedSeconds);
+            }, 1000);
+
+            startBGM();
+            playCorrectSound();
+        }
+
+        function formatTimer(totalSecs) {
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function renderHeartsHUD() {
+            const container = document.getElementById('hearts-wrapper');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const heart = document.createElement('i');
+                if (i < gameState.lives) {
+                    heart.className = 'fa-solid fa-heart text-red-500 transition-all';
+                } else {
+                    heart.className = 'fa-regular fa-heart text-slate-600';
+                }
+                container.appendChild(heart);
+            }
+        }
+
+        function openQuizModal(cpIndex) {
+            playCheckpointSound();
+            gameState.currentCheckpointIndex = cpIndex;
+            quizPhase = 'QUESTION';
+            currentSelectedOption = null;
+
+            const qData = QUIZ_QUESTIONS[cpIndex];
+
+            document.getElementById('quiz-cp-badge').innerText = `CHECKPOINT ${cpIndex + 1}`;
+            document.getElementById('quiz-chapter-badge').innerText = qData.chapter;
+            document.getElementById('quiz-question-text').innerText = `${cpIndex + 1}. ${qData.question}`;
+
+            const optionsContainer = document.getElementById('quiz-options-container');
+            optionsContainer.innerHTML = '';
+
+            qData.options.forEach((optText, optIdx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-2xl text-left text-xs sm:text-sm font-medium text-slate-200 transition-all flex items-center justify-between cursor-pointer group";
+                btn.innerHTML = `
+                    <span>${optText}</span>
+                    <i class="fa-regular fa-circle text-slate-500 group-hover:text-cyan-400 opt-radio-icon"></i>
+                `;
+                btn.onclick = () => selectOption(optIdx, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback-box').className = 'hidden';
+
+            const submitBtn = document.getElementById('btn-submit-quiz');
+            submitBtn.innerText = "SAHKAN JAWAPAN";
+            submitBtn.className = "w-full py-3.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-game text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer";
+
+            document.getElementById('modal-quiz').classList.remove('hidden');
+        }
+
+        function selectOption(optIdx, btnEl) {
+            if (quizPhase !== 'QUESTION') return;
+            currentSelectedOption = optIdx;
+            const allBtns = document.getElementById('quiz-options-container').querySelectorAll('button');
+            allBtns.forEach((b, idx) => {
+                const icon = b.querySelector('.opt-radio-icon');
+                if (idx === optIdx) {
+                    b.className = "w-full p-4 bg-cyan-500/20 border-2 border-cyan-400 rounded-2xl text-left text-xs sm:text-sm font-bold text-white transition-all flex items-center justify-between cursor-pointer";
+                    icon.className = "fa-solid fa-circle-check text-cyan-400";
+                } else {
+                    b.className = "w-full p-4 bg-slate-800/60 border border-slate-700/60 rounded-2xl text-left text-xs sm:text-sm font-medium text-slate-300 transition-all flex items-center justify-between cursor-pointer";
+                    icon.className = "fa-regular fa-circle text-slate-500";
+                }
+            });
+            playBeep(450, 0.06);
+        }
+
+        function handleQuizButtonClick() {
+            const cpIndex = gameState.currentCheckpointIndex;
+            const qData = QUIZ_QUESTIONS[cpIndex];
+            const submitBtn = document.getElementById('btn-submit-quiz');
+            const feedbackBox = document.getElementById('quiz-feedback-box');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            if (quizPhase === 'QUESTION') {
+                if (currentSelectedOption === null) {
+                    alert("Sila pilih satu jawapan dahulu!");
+                    return;
+                }
+
+                if (currentSelectedOption === qData.answer) {
+                    playCorrectSound();
+                    gameState.score += 100;
+                    gameState.completedCheckpoints.push(cpIndex);
+
+                    const cpMesh = checkpointMeshes[cpIndex];
+                    cpMesh.completed = true;
+                    cpMesh.crystal.material.color.setHex(0x10b981);
+                    cpMesh.crystal.material.emissive.setHex(0x059669);
+                    cpMesh.light.color.setHex(0x10b981);
+
+                    document.getElementById('hud-score').innerText = gameState.score;
+                    document.getElementById('hud-cp-count').innerText = gameState.completedCheckpoints.length;
+
+                    feedbackBox.className = "p-4 rounded-2xl mb-4 transition-all border flex items-start gap-3 bg-emerald-950/80 border-emerald-500/60 text-emerald-200";
+                    feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
+                    feedbackTitle.innerText = "TAHNIAH! JAWAPAN BETUL (+100 Mata)";
+                    feedbackDesc.innerText = qData.explanation;
+
+                    quizPhase = 'FEEDBACK_CORRECT';
+                    submitBtn.innerText = "TERUSKAN PENGEMBARAAN";
+                    submitBtn.className = "w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer";
+
+                } else {
+                    playWrongSound();
+                    gameState.lives--;
+                    renderHeartsHUD();
+
+                    feedbackBox.className = "p-4 rounded-2xl mb-4 transition-all border flex items-start gap-3 bg-rose-950/80 border-rose-500/60 text-rose-200";
+                    feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i>`;
+                    feedbackTitle.innerText = "JAWAPAN KURANG TEPAT (-1 Nyawa)";
+                    feedbackDesc.innerText = `Jawapan betul: ${qData.options[qData.answer]}`;
+
+                    if (gameState.lives <= 0) {
+                        quizPhase = 'GAME_OVER';
+                        submitBtn.innerText = "LIHAT KEPUTUSAN";
+                        submitBtn.className = "w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-game text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer";
+                    } else {
+                        quizPhase = 'FEEDBACK_WRONG';
+                        submitBtn.innerText = "CUBA LAGI CHECKPOINT INI";
+                        submitBtn.className = "w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-game text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer";
+                    }
+                }
+            } 
+            else if (quizPhase === 'FEEDBACK_CORRECT') {
+                document.getElementById('modal-quiz').classList.add('hidden');
+                if (gameState.completedCheckpoints.length >= 15) {
+                    endGame(true);
+                }
+            } 
+            else if (quizPhase === 'FEEDBACK_WRONG') {
+                openQuizModal(cpIndex);
+            } 
+            else if (quizPhase === 'GAME_OVER') {
+                document.getElementById('modal-quiz').classList.add('hidden');
+                endGame(false);
+            }
+        }
+
+        /* ==========================================================================
+           7. RESULTS & LEADERBOARD LOGIC
+           ========================================================================== */
+        function endGame(isVictory) {
+            gameState.isPlaying = false;
+            gameState.endTime = new Date();
+            stopBGM();
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+
+            const totalCorrect = gameState.completedCheckpoints.length;
+            const percentage = Math.round((totalCorrect / 15) * 100);
+            const timeFormatted = formatTimer(gameState.elapsedSeconds);
+
+            document.getElementById('res-student-name').innerText = gameState.playerName;
+            document.getElementById('res-student-class').innerText = gameState.playerClass;
+            document.getElementById('res-score').innerText = `${gameState.score} Mata`;
+            document.getElementById('res-correct-count').innerText = `${totalCorrect} / 15 Soalan`;
+            document.getElementById('res-percentage').innerText = `${percentage}%`;
+            document.getElementById('res-lives').innerText = `${gameState.lives} ❤️`;
+            document.getElementById('res-time').innerText = timeFormatted;
+
+            const titleEl = document.getElementById('results-title');
+            const subEl = document.getElementById('results-subtitle');
+            const badgeIcon = document.getElementById('results-badge-icon');
+            const motBox = document.getElementById('res-motivation-box');
+
+            if (isVictory || percentage >= 80) {
+                playVictorySound();
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                titleEl.innerText = "TAHNIAH! PENGEMBARAAN TAMAT";
+                subEl.innerText = "Anda telah berjaya menyelesaikan semua cabaran Maze Ilmu RBT!";
+                badgeIcon.innerHTML = `<i class="fa-solid fa-trophy text-yellow-300"></i>`;
+                motBox.innerText = "Cemerlang! Kefahaman anda dalam silibus RBT Tingkatan 3 berada di tahap tertinggi!";
+            } else if (percentage >= 50) {
+                playVictorySound();
+                titleEl.innerText = "SYABAS! KEPUTUSAN BAIK";
+                subEl.innerText = "Anda telah berusaha dengan baik dalam menerokai maze.";
+                badgeIcon.innerHTML = `<i class="fa-solid fa-award text-amber-400"></i>`;
+                motBox.innerText = "Teruskan ulangkaji untuk menguasai kesemua soalan RBT Tingkatan 3!";
+            } else {
+                playGameOverSound();
+                titleEl.innerText = "PERMAINAN TAMAT";
+                subEl.innerText = "Nyawa anda telah habis. Jangan putus asa!";
+                badgeIcon.innerHTML = `<i class="fa-solid fa-heart-crack text-rose-400"></i>`;
+                motBox.innerText = "Jangan mengalah! Cuba semula untuk meningkatkan skor dan kefahaman anda.";
+            }
+
+            saveResultRecord({
+                name: gameState.playerName,
+                studentClass: gameState.playerClass,
+                score: gameState.score,
+                correct: totalCorrect,
+                percentage: percentage,
+                timeSeconds: gameState.elapsedSeconds,
+                timeFormatted: timeFormatted,
+                timestamp: new Date().toISOString()
+            });
+
+            document.getElementById('modal-results').classList.remove('hidden');
+        }
+
+        function saveResultRecord(record) {
+            localLeaderboard.push(record);
+            localLeaderboard.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.timeSeconds - b.timeSeconds;
+            });
+            localStorage.setItem('rbt_maze_leaderboard', JSON.stringify(localLeaderboard));
+        }
+
+        function openLeaderboardModal() {
+            renderLeaderboardList();
+            document.getElementById('modal-leaderboard').classList.remove('hidden');
+        }
+
+        function closeLeaderboardModal() {
+            document.getElementById('modal-leaderboard').classList.add('hidden');
+        }
+
+        function renderLeaderboardList() {
+            const container = document.getElementById('leaderboard-list-container');
+            container.innerHTML = '';
+
+            if (localLeaderboard.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada rekod keputusan murid. Sila main dahulu!</div>`;
+                return;
+            }
+
+            localLeaderboard.forEach((rec, idx) => {
+                let badge = `<span class="font-bold text-slate-400 w-6 text-center">#${idx + 1}</span>`;
+                if (idx === 0) badge = `<span class="text-lg">🥇</span>`;
+                else if (idx === 1) badge = `<span class="text-lg">🥈</span>`;
+                else if (idx === 2) badge = `<span class="text-lg">🥉</span>`;
+
+                const item = document.createElement('div');
+                item.className = "p-3 bg-slate-800/80 border border-slate-700/70 rounded-2xl flex items-center justify-between gap-3 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${badge}
+                        <div>
+                            <div class="font-bold text-white">${rec.name}</div>
+                            <div class="text-[10px] text-slate-400">${rec.studentClass}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-extrabold text-amber-400">${rec.score} Mata</div>
+                        <div class="text-[10px] text-cyan-300"><i class="fa-regular fa-clock"></i> ${rec.timeFormatted}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function restartGame() {
+            stopBGM();
+            document.getElementById('modal-results').classList.add('hidden');
+            document.getElementById('hud-header').classList.add('hidden');
+            document.getElementById('mobile-controls').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+        }
+
+        /* ==========================================================================
+           8. DASHBOARD GURU LOGIC & EXPORT CSV
+           ========================================================================== */
+        function openTeacherLoginModal() {
+            document.getElementById('input-teacher-pin').value = '';
+            document.getElementById('teacher-pin-error').classList.add('hidden');
+            document.getElementById('modal-teacher-login').classList.remove('hidden');
+        }
+
+        function closeTeacherLoginModal() {
+            document.getElementById('modal-teacher-login').classList.add('hidden');
+        }
+
+        function verifyTeacherPassword(e) {
+            e.preventDefault();
+            const pin = document.getElementById('input-teacher-pin').value.trim();
+            if (pin === 'guru123') {
+                closeTeacherLoginModal();
+                openTeacherDashboard();
+            } else {
+                document.getElementById('teacher-pin-error').classList.remove('hidden');
+            }
+        }
+
+        function openTeacherDashboard() {
+            renderTeacherDashboard();
+            document.getElementById('modal-teacher-dashboard').classList.remove('hidden');
+        }
+
+        function closeTeacherDashboard() {
+            document.getElementById('modal-teacher-dashboard').classList.add('hidden');
+        }
+
+        function refreshTeacherData() {
+            localLeaderboard = JSON.parse(localStorage.getItem('rbt_maze_leaderboard') || '[]');
+            renderTeacherDashboard();
+        }
+
+        function renderTeacherDashboard() {
+            const data = localLeaderboard;
+            
+            const total = data.length;
+            document.getElementById('dash-stat-total').innerText = total;
+
+            if (total === 0) {
+                document.getElementById('dash-stat-avg-score').innerText = '0';
+                document.getElementById('dash-stat-pass-rate').innerText = '0%';
+                document.getElementById('dash-stat-fastest').innerText = '00:00';
+            } else {
+                const totalScore = data.reduce((acc, curr) => acc + curr.score, 0);
+                const avgScore = Math.round(totalScore / total);
+                document.getElementById('dash-stat-avg-score').innerText = avgScore;
+
+                const passCount = data.filter(d => d.percentage >= 50).length;
+                const passRate = Math.round((passCount / total) * 100);
+                document.getElementById('dash-stat-pass-rate').innerText = `${passRate}%`;
+
+                const fastest = [...data].sort((a, b) => a.timeSeconds - b.timeSeconds)[0];
+                document.getElementById('dash-stat-fastest').innerText = fastest ? fastest.timeFormatted : '00:00';
+            }
+
+            const classFilterSelect = document.getElementById('dash-class-filter');
+            const classes = [...new Set(data.map(d => d.studentClass))].filter(Boolean);
+            
+            let classOptions = '<option value="ALL">Semua Kelas</option>';
+            classes.forEach(cls => {
+                classOptions += `<option value="${cls}">${cls}</option>`;
+            });
+            classFilterSelect.innerHTML = classOptions;
+
+            filterTeacherTable();
+        }
+
+        function filterTeacherTable() {
+            const searchVal = document.getElementById('dash-search-input').value.toLowerCase().trim();
+            const classVal = document.getElementById('dash-class-filter').value;
+            const tbody = document.getElementById('dash-table-body');
+            tbody.innerHTML = '';
+
+            let filtered = localLeaderboard.filter(item => {
+                const matchName = item.name.toLowerCase().includes(searchVal);
+                const matchClass = classVal === 'ALL' || item.studentClass === classVal;
+                return matchName && matchClass;
+            });
+
+            document.getElementById('dash-table-count').innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500">Tiada rekod murid ditemui.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50 transition-colors";
+                
+                const isPassed = item.percentage >= 50;
+                const statusBadge = isPassed 
+                    ? `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 text-[10px]">LULUS</span>`
+                    : `<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30 text-[10px]">GAGAL</span>`;
+
+                const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString('ms-MY') : '-';
+
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold text-amber-400">#${idx + 1}</td>
+                    <td class="p-3.5 font-semibold text-white">${item.name}</td>
+                    <td class="p-3.5 text-slate-300">${item.studentClass}</td>
+                    <td class="p-3.5 font-bold text-amber-300">${item.score}</td>
+                    <td class="p-3.5 text-slate-300">${item.correct} / 15</td>
+                    <td class="p-3.5 text-cyan-300 font-mono">${item.timeFormatted}</td>
+                    <td class="p-3.5 text-slate-400 text-[11px]">${dateStr}</td>
+                    <td class="p-3.5">${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportResultsCSV() {
+            if (localLeaderboard.length === 0) {
+                alert("Tiada data rekod murid untuk dimuat turun.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Kedudukan,Nama Murid,Kelas,Skor,Soalan Betul,Peratus,Masa,Tarikh\n";
+
+            localLeaderboard.forEach((item, index) => {
+                const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString('ms-MY').replace(/,/g, '') : '';
+                const row = `"${index + 1}","${item.name}","${item.studentClass}","${item.score}","${item.correct}/15","${item.percentage}%","${item.timeFormatted}","${dateStr}"`;
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Keputusan_Maze_RBT_Tingkatan3_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
